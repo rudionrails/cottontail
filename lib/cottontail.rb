@@ -142,10 +142,10 @@ module Cottontail
 
     # Starts the consumer service and enters the subscribe loop.
     def run
-      logger.debug "[Cottontial] Declaring exchange"
+      logger.debug "[Cottontail] Declaring exchange"
       exchange  = client.exchange( *settings(:exchange) )
 
-      logger.debug "[Cottontial] Declaring queue"
+      logger.debug "[Cottontail] Declaring queue"
       queue     = client.queue( *settings(:queue) )
 
       routes.keys.each do |key| 
