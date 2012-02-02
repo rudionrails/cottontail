@@ -6,10 +6,10 @@ Gem::Specification.new do |s|
   s.name        = "cottontail"
   s.version     = Cottontail::VERSION
   s.authors     = ["Rudolf Schmidt"]
-  s.email       = ["me@rudionrails.com"]
-  s.homepage    = ""
-  s.summary     = %q{TODO: Write a gem summary}
-  s.description = %q{TODO: Write a gem description}
+
+  s.homepage    = "http://github.com/rudionrails/cottontail"
+  s.summary     = %q{Sinatra inspired wrapper around the AMQP Bunny gem}
+  s.description = %q{Convenience wrapper around the AMQP Bunny gem to better handle routing_key specific messages}
 
   s.rubyforge_project = "cottontail"
 
