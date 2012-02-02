@@ -1,5 +1,245 @@
-require "cottontail/version"
+require 'logger'
 
 module Cottontail
-  # Your code goes here...
+  class RouteNotFound < StandardError; end
+
+  module Helpers
+    attr_reader :message, :last_error
+
+    def payload; message[:payload]; end
+    def delivery_details; message[:delivery_details]; end
+    def routing_key; message[:routing_key]; end
+  end
+
+  class Base
+    include Helpers
+
+    class << self
+      attr_reader :routes
+
+      # convenience method to start the instance
+      def run; new.run; end
+
+      # Reset the class
+      def reset!
+        @settings = {}
+
+        @errors = {}
+        @routes = {}
+      end
+
+      # Set runtime configuration
+      #
+      # @example
+      #   set :host, "localhost"
+      #   set(:host) { "localhost" } # will be called on first usage
+      def set( key, *args, &block )
+        @settings[ key ] = block ? block : args
+      end
+
+      # Override the standard subscribe loop
+      #
+      # @example
+      #   subscribe :ack => false do |message|
+      #     puts "Received #{message.inspect}"
+      #     route! message
+      #   end
+      def subscribe( options = {}, &block )
+        set :subscribe, options, compile!("subscribe", &block)
+      end
+
+      # Defines routing on class level
+      #
+      # @example
+      #   route "message.sent" do
+      #     ... stuff to do ...
+      #   end
+      def route( key, &block )
+        @routes[key] = compile!("route_#{key}", &block)
+      end
+
+      # Define error handlers
+      #
+      # @example
+      #   error RouteNotFound do
+      #     puts "Route not found for #{routing_key.inspect}"
+      #   end
+      def error( *codes, &block )
+        codes << :default if codes.empty? # the default error handling
+
+        codes.each { |c| (@errors[c] ||= []) << compile!("error_#{c}", &block) }
+      end
+
+      # Route on class level
+      #
+      # @example
+      #   route! :payload => "some message", :routing_key => "v2.message.sent"
+      def route!( message )
+        new.route!( message )
+      end
+
+
+      # Retrieve the settings
+      #
+      # In case a block was given to a settings, it will be called upon first execution and set
+      # as the setting's value.
+      def settings( key )
+        if @settings[key].is_a? Proc
+          @settings[key] = @settings[key].call
+        end
+
+        @settings[key]
+      end
+
+      # Retrieve the error block for the passed Exception class
+      #
+      # If no class matches, the default will be returned in case it has been set (else nil).
+      def errors( klass )
+        @errors[klass] || @errors[:default]
+      end
+
+
+      private
+
+      def inherited( subclass )
+        subclass.reset!
+        super
+      end
+
+      # compiles a given proc to an unbound method to be called later on a different binding
+      def compile!( name, &block )
+        define_method name, &block
+        method = instance_method name
+        remove_method name
+
+        block.arity == 0 ? proc { |a,p| method.bind(a).call } : proc { |a,*p| method.bind(a).call(*p) }
+      end
+
+    end
+
+    def initialize
+      reset!
+    end
+
+    # Starts the consumer service and enters the subscribe loop.
+    def run
+      logger.debug "[Cottontial] Declaring exchange"
+      exchange  = client.exchange( *settings(:exchange) )
+
+      logger.debug "[Cottontial] Declaring queue"
+      queue     = client.queue( *settings(:queue) )
+
+      routes.keys.each do |key| 
+        logger.debug "[Cottontail] Binding #{key.inspect} to exchange"
+        queue.bind( exchange, :key => key )
+      end
+
+      logger.debug "[Cottontail] Entering subscribe loop"
+      subscribe! queue
+    rescue => e
+      @client.stop if @client
+      reset!
+
+      logger.error "#{e.class}: #{e.message}\n\t#{e.backtrace.join("\n\t")}"
+
+      # raise when no retries are defined
+      raise( e, caller ) unless settings(:retries)
+
+      sleep settings(:delay_on_retry) if settings(:delay_on_retry)
+      retry
+    end
+
+    # performs the routing of the given AMQP message.
+    def route!( message )
+      @message = message
+      process!
+    rescue => err
+      @last_error = err
+
+      if errors(err.class).nil?
+        raise( err, caller )
+      else
+        errors(err.class).each { |block| block.call(self) }
+      end
+    end
+
+
+    private
+
+      def process!
+        key = @message[:delivery_details][:routing_key]
+
+        raise Cottontail::RouteNotFound.new(key) unless block = routes[key]
+        block.call(self)
+      end
+
+      def routes; self.class.routes; end
+
+      # Retrieve errors
+      def errors(code); self.class.errors(code); end
+
+      # Retrieve settings
+      def settings(key); self.class.settings(key); end
+
+      # Conveniently access the logger
+      def logger; settings(:logger); end
+
+      # Reset the instance
+      def reset!
+        @client = nil
+      end
+
+      def subscribe!( queue )
+        options, block = settings(:subscribe)
+
+        queue.subscribe( options ) { |m| block.call(self, m) }
+      end
+
+      def client
+        return @client if @client
+
+        @client = Bunny.new( bunny_options )
+        @client.start
+
+        @client
+      end
+
+      # The bunny gem itself is not able to handle multiple hosts - although multiple RabbitMQ instances may run in parralel.
+      #
+      # You may pass :hosts as option whensettings the client in order to cycle through them when a connection was lost.
+      def bunny_options
+        return {} unless options = settings(:client) and options = options.first
+
+        if hosts = options[:hosts]
+          host, port = hosts.shift
+          hosts << [host, port]
+
+          options.merge!( :host => host, :port => port )
+        end
+
+        options
+      end
+
+    public
+
+      # === Perform the initial setup
+      reset!
+
+      # default subscribe loop
+      set :subscribe, [{}, proc { |m| route! m }]
+
+      # default logger
+      set :logger, Logger.new(STDOUT)
+
+      # retry settings
+      set :retries, true
+      set :delay_on_retry, 2
+
+      # default bunny options
+      set :client,    {}
+      set :exchange,  "default", :type => :topic
+      set :queue,     "default"
+
+  end
 end
+
