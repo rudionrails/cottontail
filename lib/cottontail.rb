@@ -1,4 +1,5 @@
 require 'logger'
+require 'bunny'
 
 module Cottontail
   class RouteNotFound < StandardError; end
