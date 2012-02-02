@@ -4,11 +4,30 @@ module Cottontail
   class RouteNotFound < StandardError; end
 
   module Helpers
-    attr_reader :message, :last_error
+    # The last_error is accessable within an error block.
+    #
+    # last_error will be set once an exception was raise
+    attr_reader :last_error
 
+    # A RabbitMQ message retrieved by Bunny usually contains the following information:
+    #   header [Qrack::Protocol::Header] The header of the message including size, properties, etc.
+    #   payload [String] The message sent through RabbitMQ
+    #   delivery_details [Hash] Includes the exchange, routing_key, etc
+    #
+    # This is the original message from the queue (not be confused with the payload sent via RabitMQ).
+    attr_reader :message
+
+    # Accessor to the message's payload
     def payload; message[:payload]; end
+
+    # Accessor to the message's header
+    def header; message[:header]; end
+
+    # Accessor to the message's delivery details
     def delivery_details; message[:delivery_details]; end
-    def routing_key; message[:routing_key]; end
+
+    # Accessor to the delivery detail's routing key
+    def routing_key; delivery_details[:routing_key]; end
   end
 
   class Base
@@ -70,7 +89,7 @@ module Cottontail
         codes.each { |c| (@errors[c] ||= []) << compile!("error_#{c}", &block) }
       end
 
-      # Route on class level
+      # Route on class level (handy for testing)
       #
       # @example
       #   route! :payload => "some message", :routing_key => "v2.message.sent"
