@@ -234,7 +234,10 @@ module Cottontail
       def client
         return @client if @client
 
-        @client = Bunny.new( bunny_options )
+        options = new_bunny_options!
+        logger.debug "[Cottontail] Connecting to client with: #{options.inspect}"
+
+        @client = Bunny.new( options )
         @client.start
 
         @client
@@ -243,7 +246,7 @@ module Cottontail
       # The bunny gem itself is not able to handle multiple hosts - although multiple RabbitMQ instances may run in parralel.
       #
       # You may pass :hosts as option whensettings the client in order to cycle through them when a connection was lost.
-      def bunny_options
+      def new_bunny_options!
         return {} unless options = settings(:client) and options = options.first
 
         if hosts = options[:hosts]
