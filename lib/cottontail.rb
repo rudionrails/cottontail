@@ -180,6 +180,7 @@ module Cottontail
       # raise when no retries are defined
       raise( e, caller ) unless settings(:retries)
 
+      logger.debug "[Cottontail] Going to retry in #{settings(:delay_on_retry)} seconds..."
       sleep settings(:delay_on_retry) if settings(:delay_on_retry)
       retry
     end
