@@ -158,11 +158,15 @@ module Cottontail
 
     # Starts the consumer service and enters the subscribe loop.
     def run
+      logger.debug "[Cottontail] Connecting to client"
+      @client = Bunny.new( *settings(:client) )
+      @client.start
+
       logger.debug "[Cottontail] Declaring exchange"
-      exchange  = client.exchange( *settings(:exchange) )
+      exchange = @client.exchange( *settings(:exchange) )
 
       logger.debug "[Cottontail] Declaring queue"
-      queue     = client.queue( *settings(:queue) )
+      queue = @client.queue( *settings(:queue) )
 
       routes.keys.each do |key| 
         logger.debug "[Cottontail] Binding #{key.inspect} to exchange"
@@ -223,6 +227,8 @@ module Cottontail
       # Reset the instance
       def reset!
         @client = nil
+
+        prepare_client_settings!
       end
 
       def subscribe!( queue )
@@ -231,22 +237,10 @@ module Cottontail
         queue.subscribe( options ) { |m| block.call(self, m) }
       end
 
-      def client
-        return @client if @client
-
-        options = new_bunny_options!
-        logger.debug "[Cottontail] Connecting to client with: #{options.inspect}"
-
-        @client = Bunny.new( options )
-        @client.start
-
-        @client
-      end
-
       # The bunny gem itself is not able to handle multiple hosts - although multiple RabbitMQ instances may run in parralel.
       #
-      # You may pass :hosts as option whensettings the client in order to cycle through them when a connection was lost.
-      def new_bunny_options!
+      # You may pass :hosts as option when settings the client in order to cycle through them in case a connection was lost.
+      def prepare_client_settings!
         return {} unless options = settings(:client) and options = options.first
 
         if hosts = options[:hosts]
@@ -258,6 +252,7 @@ module Cottontail
 
         options
       end
+
 
     public
 
