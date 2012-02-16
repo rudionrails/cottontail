@@ -46,6 +46,21 @@ module Cottontail
 
         @errors = {}
         @routes = {}
+
+        # default logger
+        set(:logger) { Logger.new(STDOUT) }
+
+        # retry settings
+        set(:retries) { true }
+        set(:delay_on_retry) { 2 }
+
+        # default subscribe loop
+        set :subscribe, {}, proc { |m| route! m }
+
+        # default bunny options
+        set :client,    {}
+        set :exchange,  "default", :type => :topic
+        set :queue,     "default"
       end
 
       # Set runtime configuration
@@ -244,21 +259,6 @@ module Cottontail
 
       # === Perform the initial setup
       reset!
-
-      # default subscribe loop
-      set :subscribe, [{}, proc { |m| route! m }]
-
-      # default logger
-      set :logger, Logger.new(STDOUT)
-
-      # retry settings
-      set :retries, true
-      set :delay_on_retry, 2
-
-      # default bunny options
-      set :client,    {}
-      set :exchange,  "default", :type => :topic
-      set :queue,     "default"
 
   end
 end
