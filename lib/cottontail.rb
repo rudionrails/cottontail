@@ -37,39 +37,13 @@ module Cottontail
     class << self
       attr_reader :routes
 
-      # convenience method to start the instance
-      def run; new.run; end
-
-      # Reset the class
-      def reset!
-        @settings = {}
-
-        @errors = {}
-        @routes = {}
-
-        # default logger
-        set(:logger) { Logger.new(STDOUT) }
-
-        # retry settings
-        set(:retries) { true }
-        set(:delay_on_retry) { 2 }
-
-        # default subscribe loop
-        set :subscribe, {}, proc { |m| route! m }
-
-        # default bunny options
-        set :client,    {}
-        set :exchange,  "default", :type => :topic
-        set :queue,     "default"
-      end
-
       # Set runtime configuration
       #
       # @example
-      #   set :host, "localhost"
-      #   set(:host) { "localhost" } # will be called on first usage
-      def set( key, *args, &block )
-        @settings[ key ] = block ? block : args
+      #   set :logger, Logger.new(STDOUT)
+      #   set(:logger) { Logger.new(STDOUT) } # will be called on first usage
+      def set( key, value = nil, &block )
+        @settings[ key ] = block ? block : value
       end
 
       # Override the standard subscribe loop
@@ -80,7 +54,7 @@ module Cottontail
       #     route! message
       #   end
       def subscribe( options = {}, &block )
-        set :subscribe, options, compile!("subscribe", &block)
+        set :subscribe, [options, compile!("subscribe", &block)]
       end
 
       # Defines routing on class level
@@ -95,14 +69,20 @@ module Cottontail
 
       # Define error handlers
       #
-      # @example
+      # @example Generic route
+      #   error do
+      #     puts "an error occured"
+      #   end
+      #
+      # @example Error on specific Exception
       #   error RouteNotFound do
       #     puts "Route not found for #{routing_key.inspect}"
       #   end
       def error( *codes, &block )
         codes << :default if codes.empty? # the default error handling
 
-        codes.each { |c| (@errors[c] ||= []) << compile!("error_#{c}", &block) }
+        compiled = compile!("error_#{codes.join("_")}", &block)
+        codes.each { |c| @errors[c] = compiled }
       end
 
       # Route on class level (handy for testing)
@@ -129,28 +109,55 @@ module Cottontail
       # Retrieve the error block for the passed Exception class
       #
       # If no class matches, the default will be returned in case it has been set (else nil).
-      def errors( klass )
+      def error_for( klass )
         @errors[klass] || @errors[:default]
+      end
+
+      # convenience method to start the instance
+      def run; new.run; end
+
+      # Reset the class
+      def reset!
+        @settings = {}
+
+        @errors = {}
+        @routes = {}
+
+        # default logger
+        set :logger, Logger.new(STDOUT)
+
+        # retry settings
+        set :retries, true
+        set :delay_on_retry, 2
+
+        # default subscribe loop
+        set :subscribe, [{}, proc { |m| route! m }]
+
+        # default bunny options
+        set :client,    {}
+        set :exchange,  ["default", {:type => :topic}]
+        set :queue,     "default"
       end
 
 
       private
 
-      def inherited( subclass )
-        subclass.reset!
-        super
-      end
+        def inherited( subclass )
+          subclass.reset!
+          super
+        end
 
-      # compiles a given proc to an unbound method to be called later on a different binding
-      def compile!( name, &block )
-        define_method name, &block
-        method = instance_method name
-        remove_method name
+        # compiles a given proc to an unbound method to be called later on a different binding
+        def compile!( name, &block )
+          define_method name, &block
+          method = instance_method name
+          remove_method name
 
-        block.arity == 0 ? proc { |a,p| method.bind(a).call } : proc { |a,*p| method.bind(a).call(*p) }
-      end
+          block.arity == 0 ? proc { |a,p| method.bind(a).call } : proc { |a,*p| method.bind(a).call(*p) }
+        end
 
     end
+
 
     def initialize
       reset!
@@ -158,23 +165,24 @@ module Cottontail
 
     # Starts the consumer service and enters the subscribe loop.
     def run
+      # establish connection and bind routing keys
       logger.debug "[Cottontail] Connecting to client"
-      @client = Bunny.new( *settings(:client) )
+      @client = Bunny.new( settings(:client) )
       @client.start
 
       logger.debug "[Cottontail] Declaring exchange"
       exchange = @client.exchange( *settings(:exchange) )
 
       logger.debug "[Cottontail] Declaring queue"
-      queue = @client.queue( *settings(:queue) )
+      queue = @client.queue( settings(:queue) )
 
       routes.keys.each do |key| 
         logger.debug "[Cottontail] Binding #{key.inspect} to exchange"
         queue.bind( exchange, :key => key )
       end
 
-      logger.debug "[Cottontail] Entering subscribe loop"
-      subscribe! queue
+      # enter the subscribe loop
+      subscribe!( queue )
     rescue => e
       @client.stop if @client
       reset!
@@ -189,34 +197,25 @@ module Cottontail
       retry
     end
 
-    # performs the routing of the given AMQP message.
+    # Performs the routing of the given AMQP message
+    #
+    # The method will raise an error if no route was found or an exception 
+    # was raised within matched routing block.
     def route!( message )
       @message = message
-      process!
-    rescue => err
-      @last_error = err
 
-      if errors(err.class).nil?
-        raise( err, caller )
+      if block = routes[routing_key]
+        block.call(self)
       else
-        errors(err.class).each { |block| block.call(self) }
+        raise Cottontail::RouteNotFound.new(routing_key)
       end
     end
 
 
     private
 
-      def process!
-        key = @message[:delivery_details][:routing_key]
-
-        raise Cottontail::RouteNotFound.new(key) unless block = routes[key]
-        block.call(self)
-      end
-
+      # Retrieve routes
       def routes; self.class.routes; end
-
-      # Retrieve errors
-      def errors(code); self.class.errors(code); end
 
       # Retrieve settings
       def settings(key); self.class.settings(key); end
@@ -231,17 +230,39 @@ module Cottontail
         prepare_client_settings!
       end
 
+      # Handles the subscribe loop on the queue.
       def subscribe!( queue )
-        options, block = settings(:subscribe)
+        logger.debug "[Cottontail] Entering subscribe loop"
 
-        queue.subscribe( options ) { |m| block.call(self, m) }
+        options, block = settings(:subscribe)
+        queue.subscribe( options ) do |m|
+          with_error_handling!( m, &block )
+        end
+      end
+
+      # Gracefully handles the given message.
+      #
+      # @param [Message] m The RabbitMQ message to be handled
+      def with_error_handling!( m, &block )
+        block.call(self, m)
+      rescue => err
+        @last_error = err
+
+        if block = self.class.error_for(err.class)
+          block.call(self)
+        else
+          # if no defined exception handling block could be found, then re-raise
+          raise( err, caller )
+        end
+      ensure
+        @last_error = nil # unset error after handling
       end
 
       # The bunny gem itself is not able to handle multiple hosts - although multiple RabbitMQ instances may run in parralel.
       #
       # You may pass :hosts as option when settings the client in order to cycle through them in case a connection was lost.
       def prepare_client_settings!
-        return {} unless options = settings(:client) and options = options.first
+        return {} unless options = settings(:client)
 
         if hosts = options[:hosts]
           host, port = hosts.shift
@@ -252,7 +273,6 @@ module Cottontail
 
         options
       end
-
 
     public
 
