@@ -54,7 +54,7 @@ module Cottontail
       #     route! message
       #   end
       def subscribe( options = {}, &block )
-        set :subscribe, [options, compile!("subscribe", &block)]
+        set :subscribe, [ options, compile!("subscribe", &block) ]
       end
 
       # Defines routing on class level
@@ -63,8 +63,8 @@ module Cottontail
       #   route "message.sent" do
       #     ... stuff to do ...
       #   end
-      def route( key, &block )
-        @routes[key] = compile!("route_#{key}", &block)
+      def route( key, options = {}, &block )
+        @routes[key] = [ options, compile!("route_#{key}", &block) ]
       end
 
       # Define error handlers
@@ -204,11 +204,10 @@ module Cottontail
     def route!( message )
       @message = message
 
-      if block = routes[routing_key]
-        block.call(self)
-      else
-        raise Cottontail::RouteNotFound.new(routing_key)
-      end
+      options, block = routes[routing_key]
+
+      raise Cottontail::RouteNotFound.new(routing_key) if block.nil?
+      block.call(self)
     end
 
 
