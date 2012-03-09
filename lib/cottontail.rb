@@ -37,6 +37,16 @@ module Cottontail
     class << self
       attr_reader :routes
 
+      # Defines routing on class level
+      #
+      # @example
+      #   route "message.sent" do
+      #     ... stuff to do ...
+      #   end
+      def route( key, options = {}, &block )
+        @routes[key] = [ options, compile!("route_#{key}", &block) ]
+      end
+
       # Set runtime configuration
       #
       # @example
@@ -44,6 +54,50 @@ module Cottontail
       #   set(:logger) { Logger.new(STDOUT) } # will be called on first usage
       def set( key, value = nil, &block )
         @settings[ key ] = block ? block : value
+      end
+
+      # Adds helper methods to be called when within a #route block.
+      #
+      # @example Defining a simple time helper
+      #   module TimeHelper
+      #     def log_time
+      #       logger.info "The time is: #{Time.now.iso8601}"
+      #     end
+      #   end
+      #
+      #   class Worker < Cottontail::Base
+      #     helper TimeHelper
+      #
+      #     route "test" do
+      #       log_time
+      #
+      #       # other stuff to do ...
+      #     end
+      #   end
+      def helper( *helpers )
+        include( *helpers ) if helpers.any?
+      end
+
+      # Registers an extension.
+      #
+      # @example Routing Extension
+      #   class CustomRouter
+      #     def self.registered( app )
+      #       app.route "test" do
+      #         puts "Routing :test"
+      #       end
+      #     end
+      #   end
+      #
+      #   class Worker << Cottontail::Base
+      #     register CustomRouter
+      #   end
+      def register( *extensions )
+        extensions.each do |extension|
+          extend extention
+
+          extension.registered(self) if extension.respond_to?(:registered)
+        end
       end
 
       # Override the standard subscribe loop
@@ -55,16 +109,6 @@ module Cottontail
       #   end
       def subscribe( options = {}, &block )
         set :subscribe, [ options, compile!("subscribe", &block) ]
-      end
-
-      # Defines routing on class level
-      #
-      # @example
-      #   route "message.sent" do
-      #     ... stuff to do ...
-      #   end
-      def route( key, options = {}, &block )
-        @routes[key] = [ options, compile!("route_#{key}", &block) ]
       end
 
       # Define error handlers
