@@ -37,14 +37,19 @@ module Cottontail
     class << self
       attr_reader :routes
 
-      # Defines routing on class level
-      #
-      # @example
-      #   route "message.sent" do
-      #     ... stuff to do ...
-      #   end
-      def route( key, options = {}, &block )
-        @routes[key] = [ options, compile!("route_#{key}", &block) ]
+      # Conveniently set the client
+      def client( *args, &block )
+        set :client, args, &block
+      end
+
+      # Conveniently set the exchange
+      def exchange( *args, &block )
+        set :exchange, args, &block
+      end
+
+      # Conveniently set the queue
+      def queue( *args, &block )
+        set :queue, args, &block
       end
 
       # Set runtime configuration
@@ -56,50 +61,6 @@ module Cottontail
         @settings[ key ] = block ? block : value
       end
 
-      # Adds helper methods to be called when within a #route block.
-      #
-      # @example Defining a simple time helper
-      #   module TimeHelper
-      #     def log_time
-      #       logger.info "The time is: #{Time.now.iso8601}"
-      #     end
-      #   end
-      #
-      #   class Worker < Cottontail::Base
-      #     helper TimeHelper
-      #
-      #     route "test" do
-      #       log_time
-      #
-      #       # other stuff to do ...
-      #     end
-      #   end
-      def helper( *helpers )
-        include( *helpers ) if helpers.any?
-      end
-
-      # Registers an extension.
-      #
-      # @example Routing Extension
-      #   class CustomRouter
-      #     def self.registered( app )
-      #       app.route "test" do
-      #         puts "Routing :test"
-      #       end
-      #     end
-      #   end
-      #
-      #   class Worker << Cottontail::Base
-      #     register CustomRouter
-      #   end
-      def register( *extensions )
-        extensions.each do |extension|
-          extend extention
-
-          extension.registered(self) if extension.respond_to?(:registered)
-        end
-      end
-
       # Override the standard subscribe loop
       #
       # @example
@@ -109,6 +70,16 @@ module Cottontail
       #   end
       def subscribe( options = {}, &block )
         set :subscribe, [ options, compile!("subscribe", &block) ]
+      end
+
+      # Defines routing on class level
+      #
+      # @example
+      #   route "message.sent" do
+      #     ... stuff to do ...
+      #   end
+      def route( key, options = {}, &block )
+        @routes[key] = [ options, compile!("route_#{key}", &block) ]
       end
 
       # Define error handlers
@@ -178,9 +149,9 @@ module Cottontail
         set :subscribe, [{}, proc { |m| route! m }]
 
         # default bunny options
-        set :client,    {}
-        set :exchange,  ["default", {:type => :topic}]
-        set :queue,     "default"
+        client
+        exchange  "default"
+        queue     "default"
       end
 
 
@@ -210,18 +181,18 @@ module Cottontail
     # Starts the consumer service and enters the subscribe loop.
     def run
       # establish connection and bind routing keys
-      logger.debug "[Cottontail] Connecting to client"
-      @client = Bunny.new( settings(:client) )
+      logger.debug "[Cottontail] Connecting to client: #{settings(:client).inspect}"
+      @client = Bunny.new( *settings(:client) )
       @client.start
 
-      logger.debug "[Cottontail] Declaring exchange"
+      logger.debug "[Cottontail] Declaring exchange: #{settings(:exchange).inspect}"
       exchange = @client.exchange( *settings(:exchange) )
 
-      logger.debug "[Cottontail] Declaring queue"
-      queue = @client.queue( settings(:queue) )
+      logger.debug "[Cottontail] Declaring queue: #{settings(:queue).inspect}"
+      queue = @client.queue( *settings(:queue) )
 
       routes.keys.each do |key| 
-        logger.debug "[Cottontail] Binding #{key.inspect} to exchange"
+        logger.debug "[Cottontail] Binding #{key.inspect}"
         queue.bind( exchange, :key => key )
       end
 
@@ -305,7 +276,7 @@ module Cottontail
       #
       # You may pass :hosts as option when settings the client in order to cycle through them in case a connection was lost.
       def prepare_client_settings!
-        return {} unless options = settings(:client)
+        return {} unless options = settings(:client).first
 
         if hosts = options[:hosts]
           host, port = hosts.shift

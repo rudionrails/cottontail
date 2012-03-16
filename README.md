@@ -27,13 +27,13 @@ require 'bunny'
 class Worker < Cottontail::Base
   # configure the Bunny client with the default connection (host: "localhost", port: 5672) 
   # and with logging.
-  set :client, { :logging => true }
+  client :logging => true
 
-  # Declare default direct exchange which is bound to all queues of the type `topic`
-  set :exchange, [ "", { :type => :topic } ]
+  # Declare `test` direct exchange which is bound to all queues of the type `topic`
+  exchange "test", :type => :topic
 
-  # Declare the `test` queue
-  set :queue, "test"
+  # Declare a durable `test` queue
+  queue "test", :durable => true
 
 
   # Consume messages on the routing key: `message.received`.Within the provided block 
