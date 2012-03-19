@@ -198,7 +198,7 @@ module Cottontail
 
       # enter the subscribe loop
       subscribe!( queue )
-    rescue => e
+    rescue Exception => e
       @client.stop if @client
       reset!
 
@@ -259,7 +259,7 @@ module Cottontail
       # @param [Message] m The RabbitMQ message to be handled
       def with_error_handling!( m, &block )
         block.call(self, m)
-      rescue => err
+      rescue Exception => err
         @last_error = err
 
         if block = self.class.error_for(err.class)
