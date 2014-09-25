@@ -1,5 +1,5 @@
-require 'logger'
 require 'bunny'
+require 'yell'
 
 module Cottontail
   class RouteNotFound < StandardError; end
@@ -139,7 +139,7 @@ module Cottontail
         @routes = {}
 
         # default logger
-        set :logger, Logger.new(STDOUT)
+        set :logger, Yell.new(:stdout)
 
         # retry settings
         set :retries, true
