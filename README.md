@@ -25,7 +25,7 @@ require 'cottontail'
 require 'bunny'
 
 class Worker < Cottontail::Base
-  # configure the Bunny client with the default connection (host: "localhost", port: 5672) 
+  # configure the Bunny client with the default connection (host: "localhost", port: 5672)
   # and with logging.
   client :logging => true
 
@@ -36,8 +36,8 @@ class Worker < Cottontail::Base
   queue "test", :durable => true
 
 
-  # Consume messages on the routing key: `message.received`.Within the provided block 
-  # you have access to seleral methods. See Cottontail::Helpers for more details.
+  # Consume messages on the routing key: `message.received`. Within the provided block
+  # you have access to several methods. See Cottontail::Helpers for more details.
   route "message.received" do
     puts "This is the payload #{payload.inspect}"
   end
