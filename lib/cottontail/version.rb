@@ -1,3 +1,3 @@
-module Cottontail
-  VERSION = "0.1.4"
+module Cottontail #:nodoc:
+  VERSION = '0.1.4'
 end

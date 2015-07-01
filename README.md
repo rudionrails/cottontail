@@ -22,28 +22,38 @@ When using this gem, you should already be familiar with RabbitMQ and, idealy, B
 
 ```ruby
 require 'cottontail'
-require 'bunny'
 
-class Worker < Cottontail::Base
-  # configure the Bunny client with the default connection (host: "localhost", port: 5672)
-  # and with logging.
-  client :logging => true
+class Worker
+  include Cottontail::Consumer
 
-  # Declare `test` direct exchange which is bound to all queues of the type `topic`
-  exchange "test", :type => :topic
+  session ENV['RABBITMQ_URL'] do |worker, session|
+    channel = session.create_channel
 
-  # Declare a durable `test` queue
-  queue "test", :durable => true
+    queue_a = channel.queue('queue_a', durable: true)
+    worker.subscribe(queue_a, exclusive: true)
 
+    queue_b = channel.queue('queue_b', durable: true)
+    worker.subscribe(queue_b, exclusive: true)
+  end
 
-  # Consume messages on the routing key: `message.received`. Within the provided block
-  # you have access to several methods. See Cottontail::Helpers for more details.
-  route "message.received" do
-    puts "This is the payload #{payload.inspect}"
+  consume queue: 'queue_b' do |delivery_info, properties, payload|
+    byebug
+
+    puts "DeliveryInfo\t#{delivery_info.to_hash.keys.inspect}", "",
+      "Properties\t#{properties.inspect}", "",
+      "Payload\t#{payload.inspect}", ""
+  end
+
+  consume do |delivery_info, properties, payload|
+    buebug
+
+    puts "DeliveryInfo\t#{delivery_info.to_hash.keys.inspect}", "",
+      "Properties\t#{properties.inspect}", "",
+      "Payload\t#{payload.inspect}", ""
   end
 end
 
-# The following will start Cottontail right away. You need to be aware that it 
+# The following will start Cottontail right away. You need to be aware that it
 # will enter the Bunny subscribe loop, so it will block the process.
 Worker.run
 ```
