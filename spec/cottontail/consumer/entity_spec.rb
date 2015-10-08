@@ -40,10 +40,6 @@ RSpec.describe Cottontail::Consumer::Entity do
   end
 
   context 'comparison (more complex)' do
-    let(:sorted_entities) do
-      [entity_aaa, entity_bab, entity_bba, entity_bbb]
-    end
-
     let(:entity_aaa) do
       described_class.new(exchange: 'a', queue: 'a', route: 'a')
     end
@@ -60,8 +56,10 @@ RSpec.describe Cottontail::Consumer::Entity do
       described_class.new(exchange: 'b', queue: 'b', route: 'a')
     end
 
+    let(:entities) { [entity_bbb, entity_bba, entity_bab, entity_aaa] }
+    let(:sorted_entities) { [entity_aaa, entity_bab, entity_bba, entity_bbb] }
+
     it 'sorts correctly' do
-      entities = [entity_bbb, entity_bba, entity_bab, entity_aaa]
       expect(entities.sort).to eq(sorted_entities)
     end
   end

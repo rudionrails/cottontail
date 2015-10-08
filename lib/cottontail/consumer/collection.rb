@@ -17,7 +17,7 @@ module Cottontail #:nodoc:
       # {exchange: 'exchange', queue: :any, route: :any}
       # {exchange: :any, queue: 'queue'}
       # {exchange: :any, queue: :any}
-      def find(delivery_info, _properties, _payload)
+      def find(delivery_info, _properties = nil, _payload = nil)
         @items
           .select { |e| e.matches?(:exchange, delivery_info.exchange) }
           .select { |e| e.matches?(:queue, delivery_info.consumer.queue.name) }

@@ -10,26 +10,19 @@ module Cottontail
   # The Cottontail::Consumer is the module for receiving
   # asynchronous AMQP messages.
   #
-  # @example
+  # @example A basic worker
   #   class Worker
   #     include Cottontail::Consumer
   #
   #     session ENV['RABBITMQ_URL'] do |session, worker|
   #       channel = session.create_channel
   #
-  #       queue_a = channel.queue('queue_a', durable: true)
-  #       worker.subscribe(queue_a, exclusive: true, ack: false)
-  #
-  #       queue_b = channel.queue('queue_b', durable: true)
-  #       worker.subscribe(queue_b, exclusive: true, ack: false)
-  #     end
-  #
-  #     consume queue: 'queue_b' do |delivery_info, properties, payload|
-  #       # do stuff from the queue_b
+  #       queue = channel.queue('MyQueue', durable: true)
+  #       worker.subscribe(queue, exclusive: true, ack: false)
   #     end
   #
   #     consume do |delivery_info, properties, payload|
-  #       # do stuff as fallback
+  #       # do stuff
   #     end
   #   end
   module Consumer
@@ -45,9 +38,21 @@ module Cottontail
     end
 
     module ClassMethods #:nodoc:
-      # Set the Bunny session
+      # Set the Bunny session.
+      #
+      # You are required to setup a standard Bunny session as you would
+      # when using Bunny directly. This enables you to be configurable to
+      # the maximum extend.
       #
       # @example Simple Bunny::Session
+      #   session ENV['RABBITMQ_URL'] do |session, worker|
+      #     channel = session.create_channel
+      #
+      #     queue = channel.queue('MyAwesomeQueue', durable: true)
+      #     worker.subscribe(queue, exclusive: true, ack: false)
+      #   end
+      #
+      # @example Subscribe to multiple queues
       #   session ENV['RABBITMQ_URL'] do |session, worker|
       #     channel = session.create_channel
       #
@@ -61,13 +66,10 @@ module Cottontail
         set :session, [options, block]
       end
 
-      # Method for consuming messages from the queue
+      # Method for consuming messages.
       #
       # When `:any` is provided as parameter, all messages will be routed to
-      # this block. When a string is passed as parameter, it will be used as
-      # the routing key. You may combine it with additional options such as
-      # `:queue` or `:exchange`. Also, you may pass a hash directly as shown
-      # in the examples.
+      # this block. This is the default.
       #
       # @example By routing key
       #   consume route: 'message.sent' do |message|
@@ -99,14 +101,10 @@ module Cottontail
       #     # stuff to do
       #   end
       #
-      # @example By queue name
-      #   consume queue: 'chats' do |message|
+      # @example Scoped to a specific queue
+      #   consume route: 'message.sent', queue: 'chats' do |message|
+      #     # do stuff
       #   end
-      #
-      # @example With payload modifiers
-      #   payload => JSON
-      #
-      #   consume Consumable.new
       def consume(route = nil, options = {}, &block)
         options = (route.is_a?(Hash) ? route : { route: route }).merge(options)
         get(:consumables).push Cottontail::Consumer::Entity.new(options, &block)
@@ -114,14 +112,14 @@ module Cottontail
 
       # Conveniently start the consumer
       #
-      # @example
-      # class Worker
-      #   include Cottontail::Consumer
+      # @example Since setup
+      #   class Worker
+      #     include Cottontail::Consumer
       #
-      #   # ... configuration ...
-      # end
+      #     # ... configuration ...
+      #   end
       #
-      # Worker.start
+      #   Worker.start
       def start(blocking = true)
         new.start(blocking)
       end

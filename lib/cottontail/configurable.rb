@@ -34,7 +34,7 @@ module Cottontail #:nodoc:
 
     class Configuration #:nodoc:
       def initialize
-        @settings = {}
+        reset!
       end
 
       # Set a configuration option.
@@ -43,7 +43,7 @@ module Cottontail #:nodoc:
       #   set :logger, Yell.new($stdout)
       #   set :logger, -> { Yell.new($stdout) }
       def set(key, value)
-        @settings[key] = value # value.is_a?(Proc) ? value : -> { value }
+        @settings[key] = value
       end
 
       # Get a configuration option. It will be evalued of the first time
@@ -52,10 +52,16 @@ module Cottontail #:nodoc:
       # @example
       #   get :logger
       def get(key)
-        value = @settings[key]
-        value = value.call if value.is_a?(Proc)
+        if (value = @settings[key]).is_a?(Proc)
+          @settings[key] = value.call
+        end
 
-        value
+        @settings[key]
+      end
+
+      # @private
+      def reset!
+        @settings = {}
       end
     end
   end
