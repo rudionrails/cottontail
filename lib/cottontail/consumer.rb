@@ -91,22 +91,29 @@ module Cottontail
       #     # stuff to do
       #   end
       #
-      # @example By message type
-      #   consume type: 'ChatMessage' do |message|
-      #     # stuff to do
-      #   end
-      #
-      # @example By multiple message types
-      #   consume type: ['ChatMessage', 'PushMessage'] do |message|
-      #     # stuff to do
-      #   end
-      #
       # @example Scoped to a specific queue
       #   consume route: 'message.sent', queue: 'chats' do |message|
       #     # do stuff
       #   end
+      #
+      # @example By message type (not yet implemented)
+      #   consume type: 'ChatMessage' do |message|
+      #     # stuff to do
+      #   end
+      #
+      # @example By multiple message types (not yet implemented)
+      #   consume type: ['ChatMessage', 'PushMessage'] do |message|
+      #     # stuff to do
+      #   end
+      #
       def consume(route = nil, options = {}, &block)
-        options = (route.is_a?(Hash) ? route : { route: route }).merge(options)
+        options =
+          if route.is_a?(Hash)
+            route
+          else
+            { route: route }
+          end.merge(options)
+
         get(:consumables).push Cottontail::Consumer::Entity.new(options, &block)
       end
 
@@ -152,9 +159,10 @@ module Cottontail
         consumable = consumables.find(delivery_info, properties, payload)
 
         if consumable.nil?
-          # logger.warn "[Cottontail] Could not consume message"
+          logger.warn '[Cottontail] Could not consume message'
         else
-          consumable.call(delivery_info, properties, payload)
+          consumable.attach(self).exec(delivery_info, properties, payload)
+          # consumable.call(delivery_info, properties, payload)
         end
       end
     end

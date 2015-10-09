@@ -11,15 +11,15 @@ module Cottontail #:nodoc:
       end
 
       def matches?(key, value)
-        [value, '', :any].include? option(key)
-      end
-
-      def option(key)
-        @options.fetch(key, '')
+        [value, nil, :any].include? @options[key]
       end
 
       def call(*args)
         @block.call(*args)
+      end
+
+      def attach(object)
+        Attachable.new(object, @block)
       end
 
       protected
@@ -29,8 +29,18 @@ module Cottontail #:nodoc:
       end
 
       def comparables
-        VALID_KEYS.map { |key| option(key) }
-        # @options.values_at(*VALID_OPTIONS)
+        VALID_KEYS.map { |key| @options[key] || '' }
+      end
+
+      class Attachable #:nodoc:
+        def initialize(object, block)
+          @object = object
+          @block = block
+        end
+
+        def exec(*args)
+          @object.instance_exec(*args, &@block)
+        end
       end
     end
   end

@@ -42,8 +42,8 @@ module Cottontail #:nodoc:
       # @example
       #   set :logger, Yell.new($stdout)
       #   set :logger, -> { Yell.new($stdout) }
-      def set(key, value)
-        @settings[key] = value
+      def set(key, value = nil, &block)
+        @settings[key] = !block.nil? ? block : value
       end
 
       # Get a configuration option. It will be evalued of the first time
