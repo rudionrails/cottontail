@@ -55,7 +55,7 @@ end
 
 # The following will start Cottontail right away. You need to be aware that it
 # will enter the Bunny subscribe loop, so it will block the process.
-Worker.run
+Worker.start
 ```
 
 To run it, you may start it like the following code example. However, you should use a more sophisticated solution for daemonizing your processes in a production environment. See http://www.ruby-toolbox.com/categories/daemonizing for futher inspiration.

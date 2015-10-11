@@ -17,12 +17,12 @@ module Cottontail
   #     session ENV['RABBITMQ_URL'] do |session, worker|
   #       channel = session.create_channel
   #
-  #       queue = channel.queue('MyQueue', durable: true)
+  #       queue = channel.queue('', durable: true)
   #       worker.subscribe(queue, exclusive: true, ack: false)
   #     end
   #
   #     consume do |delivery_info, properties, payload|
-  #       # do stuff
+  #       logger.info payload.inspect
   #     end
   #   end
   module Consumer
@@ -159,10 +159,10 @@ module Cottontail
         consumable = consumables.find(delivery_info, properties, payload)
 
         if consumable.nil?
-          logger.warn '[Cottontail] Could not consume message'
+          logger.error '[Cottontail] Could not consume message'
         else
-          consumable.attach(self).exec(delivery_info, properties, payload)
           # consumable.call(delivery_info, properties, payload)
+          consumable.attach(self).exec(delivery_info, properties, payload)
         end
       end
     end
