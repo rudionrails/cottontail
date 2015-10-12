@@ -5,10 +5,10 @@ require 'rspec/core'
 require 'rspec/expectations'
 require 'byebug'
 
+Dir[File.dirname(__FILE__) + '/support/**/*.rb'].each { |f| require f }
+
 require 'cottontail'
 
-# Load support files
-Dir[File.dirname(__FILE__) + '/support/**/*.rb'].each { |f| require f }
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|
