@@ -25,6 +25,34 @@ module Cottontail
   #       logger.info payload.inspect
   #     end
   #   end
+  #
+  # @example More custom worker
+  #   class Worker
+  #     include Cottontail::Consumer
+  #
+  #     session ENV['RABBITMQ_URL'] do |session, worker|
+  #       # You always need a separate channel
+  #       channel = session.create_channel
+  #
+  #       # Creates a `topic` exchange ('cottontail-exchange'), binds a
+  #       # queue ('cottontail-queue') to it and listens to any possible
+  #       # routing key ('#').
+  #       exchange = channel.topic('cottontail-exchange')
+  #       queue = channel.queue('cottontail-queue', durable: true)
+  #         .bind(exchange, routing_key: '#')
+  #
+  #       # Now you need to subscribe the worker instance to this queue.
+  #       worker.subscribe(queue, exclusive: true, ack: false)
+  #     end
+  #
+  #     consume 'custom-route' do |delivery_info, properties, payload|
+  #       logger.info "routing_key: 'custom-route' | #{payload.inspect}"
+  #     end
+  #
+  #     consume do |delivery_info, properties, payload|
+  #       logger.info "any routing key | #{payload.inspect}"
+  #     end
+  #   end
   module Consumer
     extend ActiveSupport::Concern
 
@@ -106,7 +134,7 @@ module Cottontail
       #     # stuff to do
       #   end
       #
-      def consume(route = nil, options = {}, &block)
+      def consume(route = {}, options = {}, &block)
         options =
           if route.is_a?(Hash)
             route
@@ -114,7 +142,9 @@ module Cottontail
             { route: route }
           end.merge(options)
 
-        get(:consumables).push Cottontail::Consumer::Entity.new(options, &block)
+        get(:consumables).push(
+          Cottontail::Consumer::Entity.new(options, &block)
+        )
       end
 
       # Conveniently start the consumer
