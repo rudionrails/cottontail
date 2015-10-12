@@ -26,30 +26,15 @@ require 'cottontail'
 class Worker
   include Cottontail::Consumer
 
-  session ENV['RABBITMQ_URL'] do |worker, session|
+  session ENV['RABBITMQ_URL'] do |session, worker|
     channel = session.create_channel
 
-    queue_a = channel.queue('queue_a', durable: true)
-    worker.subscribe(queue_a, exclusive: true)
-
-    queue_b = channel.queue('queue_b', durable: true)
-    worker.subscribe(queue_b, exclusive: true)
-  end
-
-  consume queue: 'queue_b' do |delivery_info, properties, payload|
-    byebug
-
-    puts "DeliveryInfo\t#{delivery_info.to_hash.keys.inspect}", "",
-      "Properties\t#{properties.inspect}", "",
-      "Payload\t#{payload.inspect}", ""
+    queue = channel.queue('', durable: true)
+    worker.subscribe(queue, exclusive: true, ack: false)
   end
 
   consume do |delivery_info, properties, payload|
-    buebug
-
-    puts "DeliveryInfo\t#{delivery_info.to_hash.keys.inspect}", "",
-      "Properties\t#{properties.inspect}", "",
-      "Payload\t#{payload.inspect}", ""
+    logger.info payload.inspect
   end
 end
 
@@ -64,4 +49,4 @@ To run it, you may start it like the following code example. However, you should
 ruby worker.rb &
 ```
 
-Copyright &copy; 2012 Rudolf Schmidt, released under the MIT license
+Copyright &copy; 2012-2015 Rudolf Schmidt, released under the MIT license
