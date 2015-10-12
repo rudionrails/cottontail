@@ -3,61 +3,93 @@ require 'spec_helper'
 RSpec.describe Cottontail::Consumer::Collection do
   let(:collection) { described_class.new }
 
-  let(:entity_aaa) do
-    Cottontail::Consumer::Entity.new(
-      exchange: 'a',
-      queue: 'a',
-      route: 'a'
-    )
-  end
+  context 'find for single entity' do
+    it 'returns correctly for :exchange, :queue, :route' do
+      entity = push_entity('a', 'b', 'c')
 
-  let(:entity_bbb) do
-    Cottontail::Consumer::Entity.new(
-      exchange: 'b',
-      queue: 'b',
-      route: 'b'
-    )
-  end
-
-  let(:entity_bab) do
-    Cottontail::Consumer::Entity.new(
-      exchange: 'b',
-      queue: 'a',
-      route: 'b'
-    )
-  end
-
-  let(:entity_bba) do
-    Cottontail::Consumer::Entity.new(
-      exchange: 'b',
-      queue: 'b',
-      route: 'a'
-    )
-  end
-
-  before do
-    collection.push(entity_aaa)
-    collection.push(entity_bbb)
-    collection.push(entity_bab)
-    collection.push(entity_bba)
-  end
-
-  context 'find by :route' do
-    let(:delivery_info) do
+      expect(collection.find(delivery_info_stub('a', 'b', 'c'))).to eq(entity)
+      expect(collection.find(delivery_info_stub('a', 'b', 'x'))).to be_nil
+      expect(collection.find(delivery_info_stub('a', 'x', 'x'))).to be_nil
+      expect(collection.find(delivery_info_stub('x', 'x', 'x'))).to be_nil
     end
 
-    it 'matches correctly' do
+    it 'returns correctly for :exchange, :queue, nil' do
+      entity = push_entity('a', 'b', nil)
+
+      expect(collection.find(delivery_info_stub('a', 'b', 'c'))).to eq(entity)
+      expect(collection.find(delivery_info_stub('a', 'b', 'x'))).to eq(entity)
+      expect(collection.find(delivery_info_stub('a', 'x', 'x'))).to be_nil
+      expect(collection.find(delivery_info_stub('x', 'x', 'x'))).to be_nil
+    end
+
+    it 'returns correctly for :exchange, nil, nil' do
+      entity = push_entity('a', nil, nil)
+
+      expect(collection.find(delivery_info_stub('a', 'b', 'c'))).to eq(entity)
+      expect(collection.find(delivery_info_stub('a', 'b', 'x'))).to eq(entity)
+      expect(collection.find(delivery_info_stub('a', 'x', 'x'))).to eq(entity)
+      expect(collection.find(delivery_info_stub('x', 'x', 'x'))).to be_nil
+    end
+
+    it 'returns correctly for nil, nil, nil' do
+      entity = push_entity(nil, nil, nil)
+
+      expect(collection.find(delivery_info_stub('a', 'b', 'c'))).to eq(entity)
+      expect(collection.find(delivery_info_stub('a', 'b', 'x'))).to eq(entity)
+      expect(collection.find(delivery_info_stub('a', 'x', 'x'))).to eq(entity)
+      expect(collection.find(delivery_info_stub('x', 'x', 'x'))).to eq(entity)
+    end
+  end
+
+  context 'find for multiple entities' do
+    let!(:nnn) { push_entity(nil, nil, nil) }
+    let!(:ann) { push_entity('a', nil, nil) }
+    let!(:abn) { push_entity('a', 'b', nil) }
+    let!(:abc) { push_entity('a', 'b', 'c') }
+
+    it 'returns correctly for :exchange, :queue, :route' do
+      expect(collection.find(delivery_info_stub('a', 'b', 'c'))).to eq(abc)
+      expect(collection.find(delivery_info_stub('a', 'b', 'x'))).to eq(abn)
+      expect(collection.find(delivery_info_stub('a', 'x', 'x'))).to eq(ann)
+      expect(collection.find(delivery_info_stub('x', 'x', 'x'))).to eq(nnn)
+    end
+  end
+
+  context 'find for multiple entities (mixed)' do
+    let!(:ann) { push_entity('a', nil, nil) }
+    let!(:nan) { push_entity(nil, 'a', nil) }
+    let!(:nna) { push_entity(nil, nil, 'a') }
+
+    it 'returns correctly for :exchange, :queue, :route' do
+      expect(collection.find(delivery_info_stub('a', 'x', 'x'))).to eq(ann)
+      expect(collection.find(delivery_info_stub('x', 'a', 'x'))).to eq(nan)
+      expect(collection.find(delivery_info_stub('x', 'x', 'a'))).to eq(nna)
+      expect(collection.find(delivery_info_stub('x', 'x', 'x'))).to eq(nil)
     end
   end
 
   private
 
+  def push_entity(exchange = nil, queue = nil, route = nil)
+    entity = Cottontail::Consumer::Entity.new(
+      exchange: exchange,
+      queue: queue,
+      route: route
+    )
+    collection.push(entity)
+    entity
+  end
+
   def delivery_info_stub(exchange = '', queue = '', route = '')
-    OpenStruct.new(
-      exchange: '',
-      queue: OpenStruct.new(name: ''),
-      route: ''
+    JSON.parse(
+      {
+        exchange: exchange,
+        consumer: {
+          queue: { name: queue }
+        },
+        routing_key: route
+      }.to_json,
+      object_class: OpenStruct
     )
   end
 end
-

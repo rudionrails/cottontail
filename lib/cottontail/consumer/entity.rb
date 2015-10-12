@@ -11,7 +11,7 @@ module Cottontail #:nodoc:
       end
 
       def matches?(key, value)
-        [value, nil, :any].include? @options[key]
+        [value, nil, :any].include?(@options[key])
       end
 
       def call(*args)
@@ -29,7 +29,20 @@ module Cottontail #:nodoc:
       end
 
       def comparables
-        VALID_KEYS.map { |key| @options[key] || '' }
+        VALID_KEYS.map { |key| Property.new(@options[key] || '') }
+      end
+
+      class Property < String #:nodoc:
+        protected
+
+        def <=>(other)
+          case
+          when length == 0 && other.length == 0 then 0
+          when length == 0 then 1
+          when other.length == 0 then -1
+          else super
+          end
+        end
       end
 
       class Attachable #:nodoc:
