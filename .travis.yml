@@ -1,5 +1,8 @@
 sudo: false
+
 language: ruby
+rvm:
+  - ruby-2.2.3
 
 script: "bundle exec rspec"
 cache: bundler
