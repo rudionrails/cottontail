@@ -100,37 +100,37 @@ module Cottontail
       # this block. This is the default.
       #
       # @example By routing key
-      #   consume route: 'message.sent' do |message|
+      #   consume route: 'message.sent' do |delivery_info, properties, payload|
       #     # stuff to do
       #   end
       #
       #   # you can also use a shortcut for this
-      #   consume "message.sent" do |message|
+      #   consume "message.sent" do |delivery_info, properties, payload|
       #     # stuff to do
       #   end
       #
       # @example By multiple routing keys
-      #   consume route: ['message.sent', 'message.read'] do |message|
+      #   consume route: ['message.sent', 'message.read'] do |delivery_info, properties, payload|
       #     # stuff to do
       #   end
       #
       #   # you can also use a shortcut for this
-      #   consume ["message.sent", "message.read"] do |message|
+      #   consume ["message.sent", "message.read"] do |delivery_info, properties, payload|
       #     # stuff to do
       #   end
       #
       # @example Scoped to a specific queue
-      #   consume route: 'message.sent', queue: 'chats' do |message|
+      #   consume route: 'message.sent', queue: 'chats' do |delivery_info, properties, payload|
       #     # do stuff
       #   end
       #
       # @example By message type (not yet implemented)
-      #   consume type: 'ChatMessage' do |message|
+      #   consume type: 'ChatMessage' do |delivery_info, properties, payload|
       #     # stuff to do
       #   end
       #
       # @example By multiple message types (not yet implemented)
-      #   consume type: ['ChatMessage', 'PushMessage'] do |message|
+      #   consume type: ['ChatMessage', 'PushMessage'] do |delivery_info, properties, payload|
       #     # stuff to do
       #   end
       #
@@ -191,8 +191,7 @@ module Cottontail
         if consumable.nil?
           logger.error '[Cottontail] Could not consume message'
         else
-          # consumable.call(delivery_info, properties, payload)
-          consumable.attach(self).exec(delivery_info, properties, payload)
+          consumable.exec(self, delivery_info, properties, payload)
         end
       end
     end

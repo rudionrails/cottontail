@@ -14,12 +14,8 @@ module Cottontail #:nodoc:
         [value, nil, :any].include?(@options[key])
       end
 
-      def call(*args)
-        @block.call(*args)
-      end
-
-      def attach(object)
-        Attachable.new(object, @block)
+      def exec(object, *args)
+        object.instance_exec(*args, &@block)
       end
 
       protected
@@ -42,17 +38,6 @@ module Cottontail #:nodoc:
           when other.length == 0 then -1
           else super
           end
-        end
-      end
-
-      class Attachable #:nodoc:
-        def initialize(object, block)
-          @object = object
-          @block = block
-        end
-
-        def exec(*args)
-          @object.instance_exec(*args, &@block)
         end
       end
     end
