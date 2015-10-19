@@ -9,3 +9,7 @@ cache: bundler
 
 services:
   - rabbitmq
+
+notifications:
+  on_success: change
+  on_failure: change
