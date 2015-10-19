@@ -1,0 +1,8 @@
+sudo: false
+language: ruby
+
+script: "bundle exec rspec"
+cache: bundler
+
+services:
+  - rabbitmq
