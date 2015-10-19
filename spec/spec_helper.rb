@@ -3,6 +3,7 @@ $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 
 require 'rspec/core'
 require 'rspec/expectations'
+require 'json'
 require 'byebug'
 
 Dir[File.dirname(__FILE__) + '/support/**/*.rb'].each { |f| require f }
