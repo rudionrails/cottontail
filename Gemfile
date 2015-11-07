@@ -10,6 +10,5 @@ group :development, :test do
   gem 'rspec-core', '~> 3'
   gem 'rspec-expectations', '~> 3'
 
-  gem 'simplecov', require: false, platform: :ruby_21
-  gem 'coveralls', require: false, platform: :ruby_21
+  gem 'coveralls', require: false
 end

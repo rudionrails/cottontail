@@ -13,3 +13,7 @@ services:
 notifications:
   on_success: change
   on_failure: change
+
+addons:
+  code_climate:
+    repo_token: 6eeabdfc385d32e919fca3b405ca275387c530d13e2f29eb0e4eecb6c8fc514f
