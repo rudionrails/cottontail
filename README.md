@@ -2,6 +2,11 @@
 
 This library is a wrapper around the popular AMQP bunny gem. It is inspired by Sinatra to easily consume messages on different routing keys.
 
+[![Gem Version](https://badge.fury.io/rb/cottontail.svg)](https://badge.fury.io/rb/cottontail)
+[![Build Status](https://travis-ci.org/rudionrails/cottontail.svg?branch=master)](https://travis-ci.org/rudionrails/cottontail)
+[![Code Climate](https://codeclimate.com/github/rudionrails/cottontail/badges/gpa.svg)](https://codeclimate.com/github/rudionrails/cottontail)
+[![Coverage Status](https://coveralls.io/repos/rudionrails/cottontail/badge.svg?branch=master&service=github)](https://coveralls.io/github/rudionrails/cottontail?branch=master)
+
 ## Installation
 
 System wide:
@@ -22,30 +27,25 @@ When using this gem, you should already be familiar with RabbitMQ and, idealy, B
 
 ```ruby
 require 'cottontail'
-require 'bunny'
 
-class Worker < Cottontail::Base
-  # configure the Bunny client with the default connection (host: "localhost", port: 5672) 
-  # and with logging.
-  client :logging => true
+class Worker
+  include Cottontail::Consumer
 
-  # Declare `test` direct exchange which is bound to all queues of the type `topic`
-  exchange "test", :type => :topic
+  session ENV['RABBITMQ_URL'] do |session, worker|
+    channel = session.create_channel
 
-  # Declare a durable `test` queue
-  queue "test", :durable => true
+    queue = channel.queue('', durable: true)
+    worker.subscribe(queue, exclusive: true, ack: false)
+  end
 
-
-  # Consume messages on the routing key: `message.received`.Within the provided block 
-  # you have access to seleral methods. See Cottontail::Helpers for more details.
-  route "message.received" do
-    puts "This is the payload #{payload.inspect}"
+  consume do |delivery_info, properties, payload|
+    logger.info payload.inspect
   end
 end
 
-# The following will start Cottontail right away. You need to be aware that it 
+# The following will start Cottontail right away. You need to be aware that it
 # will enter the Bunny subscribe loop, so it will block the process.
-Worker.run
+Worker.start
 ```
 
 To run it, you may start it like the following code example. However, you should use a more sophisticated solution for daemonizing your processes in a production environment. See http://www.ruby-toolbox.com/categories/daemonizing for futher inspiration.
@@ -54,4 +54,4 @@ To run it, you may start it like the following code example. However, you should
 ruby worker.rb &
 ```
 
-Copyright &copy; 2012 Rudolf Schmidt, released under the MIT license
+Copyright &copy; 2012-2015 Rudolf Schmidt, released under the MIT license
