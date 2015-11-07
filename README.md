@@ -2,6 +2,11 @@
 
 This library is a wrapper around the popular AMQP bunny gem. It is inspired by Sinatra to easily consume messages on different routing keys.
 
+[![Gem Version](https://badge.fury.io/rb/cottontail.svg)](https://badge.fury.io/rb/cottontail)
+[![Build Status](https://travis-ci.org/rudionrails/cottontail.svg?branch=master)](https://travis-ci.org/rudionrails/cottontail)
+[![Code Climate](https://codeclimate.com/github/rudionrails/cottontail/badges/gpa.svg)](https://codeclimate.com/github/rudionrails/cottontail)
+[![Coverage Status](https://coveralls.io/repos/rudionrails/cottontail/badge.svg?branch=master&service=github)](https://coveralls.io/github/rudionrails/cottontail?branch=master)
+
 ## Installation
 
 System wide:
