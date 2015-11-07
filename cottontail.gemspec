@@ -20,6 +20,6 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
 
   s.add_runtime_dependency "bunny", "~> 2"
-  s.add_runtime_dependency "yell", ">= 2", "<= 3"
-  s.add_runtime_dependency "activesupport", ">= 3", "<= 4"
+  s.add_runtime_dependency "yell", ">= 2", "< 3"
+  s.add_runtime_dependency "activesupport", ">= 3", "< 5"
 end
