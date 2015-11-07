@@ -31,7 +31,7 @@ require 'cottontail'
 class Worker
   include Cottontail::Consumer
 
-  session ENV['RABBITMQ_URL'] do |session, worker|
+  session ENV['RABBITMQ_URL'] do |worker, session|
     channel = session.create_channel
 
     queue = channel.queue('', durable: true)
