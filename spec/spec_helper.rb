@@ -1,15 +1,15 @@
 $LOAD_PATH.unshift File.expand_path('..', __FILE__)
 $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 
-require 'rspec/core'
-require 'rspec/expectations'
-require 'json'
-require 'byebug'
-
-Dir[File.dirname(__FILE__) + '/support/**/*.rb'].each { |f| require f }
-
 require 'cottontail'
 
+require 'json'
+require 'byebug'
+require 'securerandom'
+require 'rspec/core'
+require 'rspec/expectations'
+
+Dir[File.dirname(__FILE__) + '/support/**/*.rb'].each { |f| require f }
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|

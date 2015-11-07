@@ -14,7 +14,7 @@ module Cottontail
   #   class Worker
   #     include Cottontail::Consumer
   #
-  #     session ENV['RABBITMQ_URL'] do |session, worker|
+  #     session ENV['RABBITMQ_URL'] do |worker, session|
   #       channel = session.create_channel
   #
   #       queue = channel.queue('', durable: true)
@@ -30,7 +30,7 @@ module Cottontail
   #   class Worker
   #     include Cottontail::Consumer
   #
-  #     session ENV['RABBITMQ_URL'] do |session, worker|
+  #     session ENV['RABBITMQ_URL'] do |worker, session|
   #       # You always need a separate channel
   #       channel = session.create_channel
   #
@@ -186,17 +186,23 @@ module Cottontail
     # @private
     def subscribe(queue, options)
       queue.subscribe(options) do |delivery_info, properties, payload|
-        consumable = consumables.find(delivery_info, properties, payload)
-
-        if consumable.nil?
-          logger.error '[Cottontail] Could not consume message'
-        else
-          consumable.exec(self, delivery_info, properties, payload)
-        end
+        consume(delivery_info, properties, payload)
       end
     end
 
     private
+
+    def consume(delivery_info, properties, payload)
+      consumable = consumables.find(delivery_info, properties, payload)
+
+      if consumable.nil?
+        logger.error '[Cottontail] Could not consume message'
+      else
+        consumable.exec(self, delivery_info, properties, payload)
+      end
+    rescue => exception
+      logger.error exception
+    end
 
     def consumables
       config.get(:consumables)
