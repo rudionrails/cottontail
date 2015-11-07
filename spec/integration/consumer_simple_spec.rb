@@ -4,13 +4,10 @@ RSpec.describe 'A Cottontail::Consumer instance' do
   pending 'RabbitMQ not running' unless rabbitmq_running?
 
   let(:rand) { SecureRandom.uuid }
-  let(:topic) { "cottontail-test-#{rand}" }
   let(:queue) { "cottontail-test-#{rand}" }
   let(:payload) { 'hello world' }
 
-  let :consumer do
-    CottontailTestConsumer.new(topic, queue)
-  end
+  let(:consumer) { CottontailTestConsumer.new(queue) }
   let(:consumable) { consumer.consumable }
 
   let :publisher do
@@ -25,8 +22,8 @@ RSpec.describe 'A Cottontail::Consumer instance' do
 
     # publish message
     channel = publisher.create_channel
-    channel.topic(topic)
-      .publish(payload, routing_key: 'cottontail-spec')
+    exchange = channel.default_exchange
+    exchange.publish(payload, routing_key: queue)
   end
 
   after do
