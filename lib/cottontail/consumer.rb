@@ -60,9 +60,9 @@ module Cottontail
       include Cottontail::Configurable
 
       # default settings
-      set :consumables, -> { Cottontail::Consumer::Collection.new }
-      set :session, -> { [nil, -> {}] }
-      set :logger, -> { Cottontail.get(:logger) }
+      set :consumables, Cottontail::Consumer::Collection.new
+      set :session, [nil, -> {}]
+      set :logger, Cottontail.get(:logger)
     end
 
     module ClassMethods #:nodoc:
@@ -193,19 +193,15 @@ module Cottontail
     private
 
     def consume(delivery_info, properties, payload)
-      consumable = __consumables__.find(delivery_info, properties, payload)
+      entity = config.get(:consumables).find(delivery_info, properties, payload)
 
-      if consumable.nil?
-        logger.error '[Cottontail] Could not consume message'
+      if entity.nil?
+        logger.warn '[Cottontail] Could not consume message'
       else
-        consumable.exec(self, delivery_info, properties, payload)
+        entity.exec(self, delivery_info, properties, payload)
       end
     rescue => exception
       logger.error exception
-    end
-
-    def __consumables__
-      config.get(:consumables)
     end
 
     def logger
