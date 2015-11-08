@@ -3,11 +3,39 @@ require 'spec_helper'
 RSpec.describe 'A Cottontail::Consumer instance' do
   pending 'RabbitMQ not running' unless rabbitmq_running?
 
-  let(:rand) { SecureRandom.uuid }
-  let(:queue) { "cottontail-test-#{rand}" }
-  let(:payload) { 'hello world' }
+  let(:payload) { SecureRandom.uuid }
+  let(:queue_name) { "cottontail-#{SecureRandom.uuid}" }
 
-  let(:consumer) { CottontailTestConsumer.new(queue) }
+  let(:consumer_class) do
+    Class.new do
+      include Cottontail::Consumer
+
+      set :logger, -> { Yell.new(:null) } # no logging
+      attr_accessor :consumable
+
+      def initialize(queue_name)
+        super()
+
+        @consumable = OpenStruct.new
+        @queue_name = queue_name
+      end
+
+      session do |worker, session|
+        channel = session.create_channel
+        queue = channel.queue(@queue_name, :auto_delete => true, :durable => false)
+
+        subscribe(queue, exclusive: false)
+      end
+
+      consume do |delivery_info, properties, payload|
+        consumable.delivery_info = delivery_info
+        consumable.properties = properties
+        consumable.payload = payload
+      end
+    end
+  end
+
+  let(:consumer) { consumer_class.new(queue_name) }
   let(:consumable) { consumer.consumable }
 
   let :publisher do
@@ -23,7 +51,7 @@ RSpec.describe 'A Cottontail::Consumer instance' do
     # publish message
     channel = publisher.create_channel
     exchange = channel.default_exchange
-    exchange.publish(payload, routing_key: queue)
+    exchange.publish(payload, routing_key: queue_name)
   end
 
   after do
@@ -32,7 +60,7 @@ RSpec.describe 'A Cottontail::Consumer instance' do
   end
 
   it 'consumes the message' do
-    5.times { sleep 0.1 if consumable.payload.nil? }
+    10.times { sleep 0.02 if consumable.payload.nil? }
     expect(consumable.payload).to eq(payload)
   end
 end
