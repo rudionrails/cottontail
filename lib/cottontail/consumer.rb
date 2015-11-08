@@ -193,7 +193,7 @@ module Cottontail
     private
 
     def consume(delivery_info, properties, payload)
-      consumable = consumables.find(delivery_info, properties, payload)
+      consumable = __consumables__.find(delivery_info, properties, payload)
 
       if consumable.nil?
         logger.error '[Cottontail] Could not consume message'
@@ -204,7 +204,7 @@ module Cottontail
       logger.error exception
     end
 
-    def consumables
+    def __consumables__
       config.get(:consumables)
     end
 
