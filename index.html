@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>cottontail by rudionrails</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">cottontail</h1>
+      <h2 class="project-tagline">handle AMQP with style</h2>
+      <a href="https://github.com/rudionrails/cottontail" class="btn">View on GitHub</a>
+      <a href="https://github.com/rudionrails/cottontail/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/rudionrails/cottontail/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="cottontail" class="anchor" href="#cottontail" aria-hidden="true"><span class="octicon octicon-link"></span></a>Cottontail</h1>
+
+<p>This library is a wrapper around the popular AMQP bunny gem. It is inspired by Sinatra to easily consume messages on different routing keys.</p>
+
+<p><a href="https://badge.fury.io/rb/cottontail"><img src="https://badge.fury.io/rb/cottontail.svg" alt="Gem Version"></a>
+<a href="https://travis-ci.org/rudionrails/cottontail"><img src="https://travis-ci.org/rudionrails/cottontail.svg?branch=master" alt="Build Status"></a>
+<a href="https://codeclimate.com/github/rudionrails/cottontail"><img src="https://codeclimate.com/github/rudionrails/cottontail/badges/gpa.svg" alt="Code Climate"></a>
+<a href="https://coveralls.io/github/rudionrails/cottontail?branch=master"><img src="https://coveralls.io/repos/rudionrails/cottontail/badge.svg?branch=master&amp;service=github" alt="Coverage Status"></a></p>
+
+<h2>
+<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>System wide:</p>
+
+<div class="highlight highlight-text-shell-session"><pre><span class="pl-mo">gem install cottontail</span></pre></div>
+
+<p>Or in your Gemfile:</p>
+
+<div class="highlight highlight-source-ruby"><pre><span class="pl-k">gem</span> <span class="pl-s"><span class="pl-pds">'</span>cottontail<span class="pl-pds">'</span></span></pre></div>
+
+<h2>
+<a id="usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>When using this gem, you should already be familiar with RabbitMQ and, idealy, Bunny as it's a wrapper around it. Given we place our code into <code>worker.rb</code>, we can define a simple class like so:.</p>
+
+<div class="highlight highlight-source-ruby"><pre><span class="pl-k">require</span> <span class="pl-s"><span class="pl-pds">'</span>cottontail<span class="pl-pds">'</span></span>
+
+<span class="pl-k">class</span> <span class="pl-en">Worker</span>
+  <span class="pl-k">include</span> <span class="pl-c1">Cottontail</span>::<span class="pl-c1">Consumer</span>
+
+  session <span class="pl-c1">ENV</span>[<span class="pl-s"><span class="pl-pds">'</span>RABBITMQ_URL<span class="pl-pds">'</span></span>] <span class="pl-k">do </span>|<span class="pl-smi">worker</span>, <span class="pl-smi">session</span>|
+    channel <span class="pl-k">=</span> session.create_channel
+
+    queue <span class="pl-k">=</span> channel.queue(<span class="pl-s"><span class="pl-pds">'</span><span class="pl-pds">'</span></span>, <span class="pl-c1">durable:</span> <span class="pl-c1">true</span>)
+    worker.subscribe(queue, <span class="pl-c1">exclusive:</span> <span class="pl-c1">true</span>, <span class="pl-c1">ack:</span> <span class="pl-c1">false</span>)
+  <span class="pl-k">end</span>
+
+  consume <span class="pl-k">do </span>|<span class="pl-smi">delivery_info</span>, <span class="pl-smi">properties</span>, <span class="pl-smi">payload</span>|
+    logger.info payload.inspect
+  <span class="pl-k">end</span>
+<span class="pl-k">end</span>
+
+<span class="pl-c"># The following will start Cottontail right away. You need to be aware that it</span>
+<span class="pl-c"># will enter the Bunny subscribe loop, so it will block the process.</span>
+<span class="pl-c1">Worker</span>.start</pre></div>
+
+<p>To run it, you may start it like the following code example. However, you should use a more sophisticated solution for daemonizing your processes in a production environment. See <a href="http://www.ruby-toolbox.com/categories/daemonizing">http://www.ruby-toolbox.com/categories/daemonizing</a> for futher inspiration.</p>
+
+<div class="highlight highlight-text-shell-session"><pre><span class="pl-mo">ruby worker.rb &amp;</span></pre></div>
+
+<p>Copyright © 2012-2015 Rudolf Schmidt, released under the MIT license</p>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/rudionrails/cottontail">cottontail</a> is maintained by <a href="https://github.com/rudionrails">rudionrails</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
