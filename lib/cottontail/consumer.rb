@@ -190,6 +190,11 @@ module Cottontail
       end
     end
 
+    # @private
+    def logger
+      config.get(:logger)
+    end
+
     private
 
     def consume(delivery_info, properties, payload)
@@ -202,10 +207,6 @@ module Cottontail
       end
     rescue => exception
       logger.error exception
-    end
-
-    def logger
-      config.get(:logger)
     end
   end
 end
