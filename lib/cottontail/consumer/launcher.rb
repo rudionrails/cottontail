@@ -14,7 +14,7 @@ module Cottontail #:nodoc:
         stop unless @launcher.nil?
 
         SIGNALS.each do |signal|
-          Signal.trap(signal) { Thread.new { stop } }
+          Signal.trap(signal) { Thread.new { @consumer.stop } }
         end
 
         @launcher = Thread.new { sleep }
@@ -22,8 +22,6 @@ module Cottontail #:nodoc:
       end
 
       def stop
-        @consumer.stop if @consumer.respond_to?(:stop)
-
         @launcher.kill if @launcher.respond_to?(:kill)
         @launcher = nil
       end

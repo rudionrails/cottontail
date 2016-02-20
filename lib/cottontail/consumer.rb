@@ -1,4 +1,6 @@
 require 'active_support/concern'
+require 'active_support/core_ext/class/attribute'
+require 'active_support/callbacks'
 
 require File.dirname(__FILE__) + '/configurable'
 require File.dirname(__FILE__) + '/consumer/launcher'
@@ -57,12 +59,19 @@ module Cottontail
     extend ActiveSupport::Concern
 
     included do
+      include ActiveSupport::Callbacks
+      define_callbacks :initialize
+      define_callbacks :consume
+
       include Cottontail::Configurable
 
-      # default settings
+      # default config
       set :consumables, Cottontail::Consumer::Collection.new
       set :session, [nil, -> {}]
       set :logger, Cottontail.get(:logger)
+
+      # config for consumer behaviour
+      set :raise_on_exception, true
     end
 
     module ClassMethods #:nodoc:
@@ -133,7 +142,6 @@ module Cottontail
       #   consume type: ['ChatMessage', 'PushMessage'] do |delivery_info, properties, payload|
       #     # stuff to do
       #   end
-      #
       def consume(route = {}, options = {}, &block)
         options =
           if route.is_a?(Hash)
@@ -162,9 +170,17 @@ module Cottontail
       end
     end
 
-    def initialize
-      @__launcher__ = Cottontail::Consumer::Launcher.new(self)
-      @__session__ = Cottontail::Consumer::Session.new(self)
+    attr_accessor :options
+
+    def initialize(options = {})
+      @options = options
+
+      run_callbacks :initialize do
+        @__running__ = false
+
+        @__launcher__ = Cottontail::Consumer::Launcher.new(self)
+        @__session__ = Cottontail::Consumer::Session.new(self)
+      end
 
       logger.debug '[Cottontail] initialized'
     end
@@ -173,14 +189,22 @@ module Cottontail
       logger.info '[Cottontail] starting up'
 
       @__session__.start
+      @__running__ = true
       @__launcher__.start if blocking
     end
 
     def stop
+      return unless running?
+
       logger.info '[Cottontail] shutting down'
 
-      # @__launcher__.stop
+      @__launcher__.stop
       @__session__.stop
+      @__running__ = false
+    end
+
+    def running?
+      @__running__
     end
 
     # @private
@@ -198,6 +222,20 @@ module Cottontail
     private
 
     def consume(delivery_info, properties, payload)
+      run_callbacks :consume do
+        execute(delivery_info, properties, payload)
+      end
+    rescue => exception
+      logger.error exception
+
+      if config.get(:raise_on_exception)
+        stop
+
+        raise(exception, caller)
+      end
+    end
+
+    def execute(delivery_info, properties, payload)
       entity = config.get(:consumables).find(delivery_info, properties, payload)
 
       if entity.nil?
@@ -205,8 +243,6 @@ module Cottontail
       else
         entity.exec(self, delivery_info, properties, payload)
       end
-    rescue => exception
-      logger.error exception
     end
   end
 end
