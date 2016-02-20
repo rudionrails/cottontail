@@ -64,7 +64,25 @@ RSpec.describe Cottontail::Consumer::Collection do
       expect(collection.find(delivery_info_stub('a', 'x', 'x'))).to eq(ann)
       expect(collection.find(delivery_info_stub('x', 'a', 'x'))).to eq(nan)
       expect(collection.find(delivery_info_stub('x', 'x', 'a'))).to eq(nna)
-      expect(collection.find(delivery_info_stub('x', 'x', 'x'))).to eq(nil)
+      expect(collection.find(delivery_info_stub('x', 'x', 'x'))).to be_nil
+    end
+  end
+
+  context 'find for multiple entities with the same signature' do
+    let!(:ann_1) { push_entity('a', nil, nil) }
+    let!(:ann_2) { push_entity('a', nil, nil) }
+    let!(:nan_1) { push_entity(nil, 'a', nil) }
+    let!(:nan_2) { push_entity(nil, 'a', nil) }
+    let!(:nna_1) { push_entity(nil, nil, 'a') }
+    let!(:nna_2) { push_entity(nil, nil, 'a') }
+    let!(:nnn_1) { push_entity(nil, nil, nil) }
+    let!(:nnn_2) { push_entity(nil, nil, nil) }
+
+    it 'returns the last added entity for :exchange, :queue, :route' do
+      expect(collection.find(delivery_info_stub('a', 'x', 'x'))).to eq(ann_2)
+      expect(collection.find(delivery_info_stub('x', 'a', 'x'))).to eq(nan_2)
+      expect(collection.find(delivery_info_stub('x', 'x', 'a'))).to eq(nna_2)
+      expect(collection.find(delivery_info_stub('x', 'x', 'x'))).to eq(nnn_2)
     end
   end
 
