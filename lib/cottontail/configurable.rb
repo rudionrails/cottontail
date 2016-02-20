@@ -15,8 +15,7 @@ module Cottontail #:nodoc:
           if respond_to?(:superclass) && superclass.respond_to?(:config)
             superclass.config.inheritable_copy
           else
-            # create a new "anonymous" class that will host the compiled
-            # reader methods
+            # create a new "anonymous" class
             Class.new(Configuration).new
           end
       end
@@ -33,8 +32,12 @@ module Cottontail #:nodoc:
     private
 
     class Configuration #:nodoc:
-      def initialize
+      def initialize(parent = nil)
         reset!
+
+        if parent.kind_of?(Cottontail::Configuration)
+          parent.each { |k, v| set(k, v) }
+        end
       end
 
       # Set a configuration option.
@@ -43,7 +46,7 @@ module Cottontail #:nodoc:
       #   set :logger, Yell.new($stdout)
       #   set :logger, -> { Yell.new($stdout) }
       def set(key, value = nil, &block)
-        @settings[key] = !block.nil? ? block : value
+        @settings[key] = block.nil? ? value : block
       end
 
       # Get a configuration option. It will be evalued of the first time
@@ -57,6 +60,16 @@ module Cottontail #:nodoc:
         end
 
         @settings[key]
+      end
+
+      # @private
+      def each(&block)
+        @settings.each(&block)
+      end
+
+      # @private
+      def inheritable_copy
+        self.class.new(self)
       end
 
       # @private
