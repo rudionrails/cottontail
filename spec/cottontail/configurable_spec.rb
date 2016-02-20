@@ -1,12 +1,13 @@
 require 'spec_helper'
 
-RSpec.describe Cottontail::Configurable do
-  class ConfigurationFactory #:nodoc:
-    include Cottontail::Configurable
+RSpec.describe 'Cottontail::Configurable' do
+  let(:base_klass) do
+    Class.new do
+      include Cottontail::Configurable
+    end
   end
 
-  let(:config) { ConfigurationFactory.config }
-  before { config.reset! }
+  let(:config) { base_klass.config }
 
   it 'responds to :get' do
     expect(config).to respond_to(:get)
@@ -16,7 +17,7 @@ RSpec.describe Cottontail::Configurable do
     expect(config).to respond_to(:set)
   end
 
-  context 'String' do
+  context ':set with String' do
     let(:value) { 'value' }
     before { config.set(:key, value) }
 
@@ -25,7 +26,7 @@ RSpec.describe Cottontail::Configurable do
     end
   end
 
-  context 'Proc' do
+  context ':set with Proc' do
     let(:value) { -> { 'value' } }
     before { config.set(:key, value) }
 
