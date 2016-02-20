@@ -1,13 +1,29 @@
 $LOAD_PATH.unshift File.expand_path('..', __FILE__)
 $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 
-require 'cottontail'
-
 require 'json'
 require 'byebug'
 require 'securerandom'
 require 'rspec/core'
 require 'rspec/expectations'
+
+begin
+  require 'coveralls'
+  # Coveralls.wear!
+
+  require 'simplecov'
+  SimpleCov.start do
+    formatter = SimpleCov::Formatter::MultiFormatter[
+      Coveralls::SimpleCov::Formatter,
+      SimpleCov::Formatter::HTMLFormatter
+    ]
+    add_filter 'spec'
+  end
+rescue LoadError
+  $stderr.puts 'Not running coverage'
+end
+
+require 'cottontail'
 
 Dir[File.dirname(__FILE__) + '/support/**/*.rb'].each { |f| require f }
 
@@ -39,4 +55,11 @@ RSpec.configure do |config|
   # the seed, which is printed after each run.
   #     --seed 1234
   config.order = :random
+
+  ##
+  # Custom Configuration
+  #
+
+  # do not run the performance specs by default
+  config.filter_run_excluding performance: !ENV['PERFORMANCE']
 end
