@@ -10,8 +10,8 @@ RSpec.describe 'A Cottontail::Consumer instance', :performance do
 
   let(:consumer_class) do
     Class.new(Cottontail::Test::Consumer) do
-      session do |worker, session|
-        channel = session.create_channel
+      session do |worker, bunny|
+        channel = bunny.create_channel
         queue = channel.queue(
           options[:queue_name],
           auto_delete: true,

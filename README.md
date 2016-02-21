@@ -21,9 +21,9 @@ Or in your Gemfile:
 gem 'cottontail'
 ```
 
-## Usage
+## Usage: Simple consumer
 
-When using this gem, you should already be familiar with RabbitMQ and, idealy, Bunny as it's a wrapper around it. Given we place our code into `worker.rb`, we can define a simple class like so:.
+When using this gem, you should already be familiar with RabbitMQ and, idealy, Bunny as it is used internally. Given we place our code into `worker.rb`, we can define a simple class like so:.
 
 ```ruby
 require 'cottontail'
@@ -31,8 +31,8 @@ require 'cottontail'
 class Worker
   include Cottontail::Consumer
 
-  session ENV['RABBITMQ_URL'] do |worker, session|
-    channel = session.create_channel
+  session ENV['RABBITMQ_URL'] do |worker, bunny|
+    channel = bunny.create_channel
 
     queue = channel.queue('', durable: true)
     worker.subscribe(queue, exclusive: true, ack: false)

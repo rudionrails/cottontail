@@ -16,8 +16,8 @@ module Cottontail
   #   class Worker
   #     include Cottontail::Consumer
   #
-  #     session ENV['RABBITMQ_URL'] do |worker, session|
-  #       channel = session.create_channel
+  #     session ENV['RABBITMQ_URL'] do |worker, bunny|
+  #       channel = bunny.create_channel
   #
   #       queue = channel.queue('', durable: true)
   #       worker.subscribe(queue, exclusive: true, ack: false)
@@ -32,9 +32,9 @@ module Cottontail
   #   class Worker
   #     include Cottontail::Consumer
   #
-  #     session ENV['RABBITMQ_URL'] do |worker, session|
+  #     session ENV['RABBITMQ_URL'] do |worker, bunny|
   #       # You always need a separate channel
-  #       channel = session.create_channel
+  #       channel = bunny.create_channel
   #
   #       # Creates a `topic` exchange ('cottontail-exchange'), binds a
   #       # queue ('cottontail-queue') to it and listens to any possible
@@ -82,16 +82,16 @@ module Cottontail
       # the maximum extend.
       #
       # @example Simple Bunny::Session
-      #   session ENV['RABBITMQ_URL'] do |session, worker|
-      #     channel = session.create_channel
+      #   session ENV['RABBITMQ_URL'] do |worker, bunny|
+      #     channel = bunny.create_channel
       #
       #     queue = channel.queue('MyAwesomeQueue', durable: true)
       #     worker.subscribe(queue, exclusive: true, ack: false)
       #   end
       #
       # @example Subscribe to multiple queues
-      #   session ENV['RABBITMQ_URL'] do |session, worker|
-      #     channel = session.create_channel
+      #   session ENV['RABBITMQ_URL'] do |worker, bunny|
+      #     channel = bunny.create_channel
       #
       #     queue_a = channel.queue('queue_a', durable: true)
       #     worker.subscribe(queue_a, exclusive: true, ack: false)
