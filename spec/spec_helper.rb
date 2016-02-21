@@ -55,11 +55,4 @@ RSpec.configure do |config|
   # the seed, which is printed after each run.
   #     --seed 1234
   config.order = :random
-
-  ##
-  # Custom Configuration
-  #
-
-  # do not run the performance specs by default
-  config.filter_run_excluding performance: !ENV['PERFORMANCE']
 end
