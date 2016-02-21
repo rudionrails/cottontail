@@ -7,45 +7,30 @@ RSpec.describe 'A Cottontail::Consumer instance' do
   let(:queue_name) { "cottontail-#{SecureRandom.uuid}" }
 
   let(:consumer_class) do
-    Class.new do
-      include Cottontail::Consumer
-
-      set :logger, -> { Yell.new(:null) } # no logging
-      attr_accessor :consumable
-
-      def initialize(queue_name)
-        super()
-
-        @consumable = OpenStruct.new
-        @queue_name = queue_name
-      end
-
+    Class.new(Cottontail::Test::Consumer) do
       session do |worker, session|
         channel = session.create_channel
-        queue = channel.queue(@queue_name, :auto_delete => true, :durable => false)
+        queue = channel.queue(
+          options[:queue_name],
+          auto_delete: true,
+          durable: false
+        )
 
         subscribe(queue, exclusive: false)
-      end
-
-      consume do |delivery_info, properties, payload|
-        consumable.delivery_info = delivery_info
-        consumable.properties = properties
-        consumable.payload = payload
       end
     end
   end
 
-  let(:consumer) { consumer_class.new(queue_name) }
-  let(:consumable) { consumer.consumable }
+  let(:consumer) { consumer_class.new(queue_name: queue_name) }
 
   let :publisher do
     session = Bunny.new
     session.start
+
     session
   end
 
   before do
-    # start consumer
     consumer.start(false)
 
     # publish message
@@ -60,7 +45,10 @@ RSpec.describe 'A Cottontail::Consumer instance' do
   end
 
   it 'consumes the message' do
-    10.times { sleep 0.02 if consumable.payload.nil? }
-    expect(consumable.payload).to eq(payload)
+    # wait for received message
+    10.times { sleep 0.02 if consumer.running? }
+
+    message = consumer.messages.last
+    expect(message[:payload]).to eq(payload)
   end
 end
