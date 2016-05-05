@@ -9,11 +9,10 @@ require 'rspec/expectations'
 
 begin
   require 'coveralls'
-  # Coveralls.wear!
-
   require 'simplecov'
+
   SimpleCov.start do
-    formatter = SimpleCov::Formatter::MultiFormatter[
+    formatter SimpleCov::Formatter::MultiFormatter[
       Coveralls::SimpleCov::Formatter,
       SimpleCov::Formatter::HTMLFormatter
     ]
@@ -55,4 +54,6 @@ RSpec.configure do |config|
   # the seed, which is printed after each run.
   #     --seed 1234
   config.order = :random
+
+  config.filter_run_excluding :performance
 end
