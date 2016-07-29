@@ -54,4 +54,4 @@ To run it, you may start it like the following code example. However, you should
 ruby worker.rb &
 ```
 
-Copyright &copy; 2012-2015 Rudolf Schmidt, released under the MIT license
+Copyright &copy; Rudolf Schmidt, released under the MIT license
