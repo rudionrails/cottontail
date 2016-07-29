@@ -3,7 +3,7 @@ module Cottontail #:nodoc:
     class Entity #:nodoc:
       include Comparable
 
-      VALID_KEYS = [:exchange, :queue, :route]
+      VALID_KEYS = [:exchange, :queue, :route].freeze
 
       def initialize(options = {}, &block)
         @options = options.keep_if { |k, _| VALID_KEYS.include?(k) }
@@ -32,10 +32,9 @@ module Cottontail #:nodoc:
         protected
 
         def <=>(other)
-          case
-          when length == 0 && other.length == 0 then 0
-          when length == 0 then 1
-          when other.length == 0 then -1
+          if length.zero? && other.length.zero? then 0
+          elsif length.zero? then 1
+          elsif other.length.zero? then -1
           else super
           end
         end

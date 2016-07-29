@@ -29,15 +29,11 @@ module Cottontail #:nodoc:
       self.class.config
     end
 
-    private
-
     class Configuration #:nodoc:
       def initialize(parent = nil)
         reset!
 
-        if parent.kind_of?(Cottontail::Configuration)
-          parent.each { |k, v| set(k, v) }
-        end
+        parent.each { |k, v| set(k, v) } if parent.is_a?(Cottontail::Configuration)
       end
 
       # Set a configuration option.

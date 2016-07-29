@@ -18,7 +18,7 @@ RSpec.describe 'A Cottontail::Consumer instance', :performance do
           durable: false
         )
 
-        subscribe(queue, exclusive: false)
+        worker.subscribe(queue, exclusive: false)
       end
     end
   end

@@ -2,3 +2,6 @@ AllCops:
   Exclude:
     - '*.gemspec'
     - 'Rakefile'
+
+Metrics/LineLength:
+  Max: 100

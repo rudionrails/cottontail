@@ -3,7 +3,7 @@ require 'thread'
 module Cottontail #:nodoc:
   module Consumer #:nodoc:
     class Launcher #:nodoc:
-      SIGNALS = [:QUIT, :TERM, :INT]
+      SIGNALS = [:QUIT, :TERM, :INT].freeze
 
       def initialize(consumer)
         @consumer = consumer
