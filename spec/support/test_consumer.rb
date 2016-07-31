@@ -1,18 +1,43 @@
-module Cottontail #:nodoc
-  module Test #:nodoc
-    class Consumer #:nodoc:
-      include Cottontail::Consumer
-      set :logger, -> { Yell.new(:null) }
+# RSpec.shared_context "a consumer", :shared_context => :metadata do
+RSpec.shared_context "a test consumer" do
+  let(:consumer_class) { new_consumer_class }
+  let(:consumer_options) { {} }
+  let(:consumer) { consumer_class.new(consumer_options) }
 
-      set_callback :initialize, :after do
-        @max_messages = options[:max_messages] || 1
-      end
+  let :publisher do
+    session = Bunny.new
+    session.start
+
+    session
+  end
+
+  after do
+    publisher.stop
+    consumer.stop
+  end
+
+  private
+
+  def new_message
+    OpenStruct.new(
+      queue: "cottontail-queue-#{SecureRandom.uuid}",
+      route: "cottontail-route-#{SecureRandom.uuid}",
+      payload: SecureRandom.uuid,
+    )
+  end
+
+  def new_consumer_class
+    Class.new do
+      include Cottontail::Consumer
+      set :logger, -> { Yell.new(:null) } # no logging output
 
       set_callback :consume, :after do
-        stop if stop?
+        stop if messages.count >= (options[:max_messages] || 99)
       end
 
       consume do |delivery_info, properties, payload|
+        logger.info payload
+
         messages << {
           consumable: :default,
           delivery_info: delivery_info,
@@ -21,12 +46,9 @@ module Cottontail #:nodoc
         }
       end
 
+      # @private
       def messages
         @messages ||= []
-      end
-
-      def stop?
-        messages.count >= @max_messages
       end
     end
   end

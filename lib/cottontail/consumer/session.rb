@@ -15,7 +15,7 @@ module Cottontail #:nodoc:
         @session = Bunny.new(@options)
         @session.start
 
-        @consumer.instance_exec(@consumer, @session, &@block)
+        @block.call(@consumer, @session)
       end
 
       def stop

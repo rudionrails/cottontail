@@ -1,0 +1,67 @@
+require 'spec_helper'
+
+RSpec.describe 'A Cottontail::Consumer (multiqueue, multiconsume)' do
+  pending 'RabbitMQ not running' unless rabbitmq_running?
+
+  include_context "a test consumer"
+
+  let(:exchange_name) { "cottontail-#{SecureRandom.uuid}" }
+  let(:queue_name) { "cottontail-#{SecureRandom.uuid}" }
+  let(:message_a) { new_message }
+  let(:message_b) { new_message }
+
+  before do
+    consumer_class.session do |worker, bunny|
+      channel = bunny.create_channel
+
+      exchange = channel.topic(exchange_name, auto_delete: true)
+      queue = channel.queue(queue_name, auto_delete: true, durable: false)
+        .bind(exchange, routing_key: '#') # all routing keys
+
+      worker.subscribe(queue, exclusive: true, ach: false)
+    end
+
+    consumer_class.consume(message_a.route) do |delivery_info, properties, payload|
+      messages << {
+        consumable: :message_a,
+        delivery_info: delivery_info,
+        properties: properties,
+        payload: payload
+      }
+    end
+
+    consumer_class.consume(message_b.route) do |delivery_info, properties, payload|
+      messages << {
+        consumable: :message_b,
+        delivery_info: delivery_info,
+        properties: properties,
+        payload: payload
+      }
+    end
+  end
+
+  before do
+    consumer.start(false)
+
+    # publish message
+    channel = publisher.create_channel
+    exchange = channel.topic(exchange_name, auto_delete: true)
+
+    exchange.publish(message_a.payload, routing_key: message_a.route)
+    exchange.publish(message_b.payload, routing_key: message_b.route)
+  end
+
+  it 'consumes the message' do
+    # wait for received message
+    10.times { sleep 0.02 unless consumer.messages == 2 }
+
+    messages = consumer.messages
+    expect(messages.size).to eq(2)
+
+    a_message = messages.find { |m| m[:consumable] == :message_a }
+    expect(a_message[:payload]).to eq(message_a.payload)
+
+    b_message = messages.find { |m| m[:consumable] == :message_b }
+    expect(b_message[:payload]).to eq(message_b.payload)
+  end
+end

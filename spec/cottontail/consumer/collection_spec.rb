@@ -41,11 +41,25 @@ RSpec.describe Cottontail::Consumer::Collection do
     end
   end
 
-  context 'find for multiple entities' do
+  context 'find for multiple entities (ordered)' do
     let!(:nnn) { push_entity(nil, nil, nil) }
     let!(:ann) { push_entity('a', nil, nil) }
     let!(:abn) { push_entity('a', 'b', nil) }
     let!(:abc) { push_entity('a', 'b', 'c') }
+
+    it 'returns correctly for :exchange, :queue, :route' do
+      expect(collection.find(delivery_info_stub('a', 'b', 'c'))).to eq(abc)
+      expect(collection.find(delivery_info_stub('a', 'b', 'x'))).to eq(abn)
+      expect(collection.find(delivery_info_stub('a', 'x', 'x'))).to eq(ann)
+      expect(collection.find(delivery_info_stub('x', 'x', 'x'))).to eq(nnn)
+    end
+  end
+
+  context 'find for multiple entities (reverse ordered)' do
+    let!(:abc) { push_entity('a', 'b', 'c') }
+    let!(:abn) { push_entity('a', 'b', nil) }
+    let!(:ann) { push_entity('a', nil, nil) }
+    let!(:nnn) { push_entity(nil, nil, nil) }
 
     it 'returns correctly for :exchange, :queue, :route' do
       expect(collection.find(delivery_info_stub('a', 'b', 'c'))).to eq(abc)
@@ -90,10 +104,13 @@ RSpec.describe Cottontail::Consumer::Collection do
 
   def push_entity(exchange = nil, queue = nil, route = nil)
     entity = Cottontail::Consumer::Entity.new(
-      exchange: exchange,
-      queue: queue,
-      route: route
+      {
+        exchange: exchange,
+        queue: queue,
+        route: route
+      }.reject { |_, v| v.nil? }
     )
+
     collection.push(entity)
     entity
   end
