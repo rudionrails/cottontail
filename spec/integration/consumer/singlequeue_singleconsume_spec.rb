@@ -27,8 +27,7 @@ RSpec.describe 'A Cottontail::Consumer (singlequeue, singleconsume)' do
   end
 
   it 'consumes the message' do
-    # wait for received message
-    10.times { sleep 0.02 unless consumer.messages == 1 }
+    consumer_wait_until(1)
 
     messages = consumer.messages
     expect(messages.size).to eq(1)

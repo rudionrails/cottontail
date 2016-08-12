@@ -18,6 +18,10 @@ RSpec.shared_context "a test consumer" do
 
   private
 
+  def consumer_wait_until(count, amount = 10)
+    amount.times { consumer.messages.count == count ? break : sleep(0.02) }
+  end
+
   def new_message
     OpenStruct.new(
       queue: "cottontail-queue-#{SecureRandom.uuid}",
