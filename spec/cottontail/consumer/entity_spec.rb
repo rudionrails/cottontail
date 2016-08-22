@@ -103,18 +103,44 @@ RSpec.describe Cottontail::Consumer::Entity do
     end
   end
 
-  context 'matching for :exchange' do
-    subject { :exchange }
-    it_behaves_like 'a matching property'
+  context 'matching' do
+    context 'for :exchange' do
+      subject { :exchange }
+      it_behaves_like 'a matching property'
+    end
+
+    context 'for :queue' do
+      subject { :queue }
+      it_behaves_like 'a matching property'
+    end
+
+    context 'for :route' do
+      subject { :route }
+      it_behaves_like 'a matching property'
+    end
   end
 
-  context 'matching for :queue' do
-    subject { :queue }
-    it_behaves_like 'a matching property'
-  end
+  context 'exec' do
+    let(:consumer) { OpenStruct.new(counter: 0) }
 
-  context 'matching for :queue' do
-    subject { :route }
-    it_behaves_like 'a matching property'
+    it 'is bound to the passed instance' do
+      entity = described_class.new do
+        self.counter += 1
+      end
+
+      expect do
+        entity.exec(consumer)
+      end.to change(consumer, :counter).by(1)
+    end
+
+    it 'passes the arguments' do
+      entity = described_class.new do |value|
+        self.counter += value
+      end
+
+      expect do
+        entity.exec(consumer, 5)
+      end.to change(consumer, :counter).by(5)
+    end
   end
 end
