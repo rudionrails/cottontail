@@ -142,5 +142,15 @@ RSpec.describe Cottontail::Consumer::Entity do
         entity.exec(consumer, 5)
       end.to change(consumer, :counter).by(5)
     end
+
+    it 'raises' do
+      entity = described_class.new do
+        raise StandardError
+      end
+
+      expect do
+        entity.exec(consumer)
+      end.to raise_error(StandardError)
+    end
   end
 end

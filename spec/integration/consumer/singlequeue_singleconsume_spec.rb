@@ -3,7 +3,7 @@ require 'spec_helper'
 RSpec.describe 'A Cottontail::Consumer (singlequeue, singleconsume)' do
   pending 'RabbitMQ not running' unless rabbitmq_running?
 
-  include_context "a test consumer"
+  include_context 'a test consumer'
 
   let(:message_a) { new_message }
 

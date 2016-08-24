@@ -3,7 +3,7 @@ require 'spec_helper'
 RSpec.describe 'A Cottontail::Consumer (multiqueue, multiconsume)' do
   pending 'RabbitMQ not running' unless rabbitmq_running?
 
-  include_context "a test consumer"
+  include_context 'a test consumer'
 
   let(:exchange_name) { "cottontail-#{SecureRandom.uuid}" }
   let(:queue_name) { "cottontail-#{SecureRandom.uuid}" }
@@ -16,7 +16,7 @@ RSpec.describe 'A Cottontail::Consumer (multiqueue, multiconsume)' do
 
       exchange = channel.topic(exchange_name, auto_delete: true)
       queue = channel.queue(queue_name, auto_delete: true, durable: false)
-        .bind(exchange, routing_key: '#') # all routing keys
+                     .bind(exchange, routing_key: '#') # all routing keys
 
       worker.subscribe(queue, exclusive: true, ach: false)
     end

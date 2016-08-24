@@ -1,5 +1,5 @@
 # RSpec.shared_context "a consumer", :shared_context => :metadata do
-RSpec.shared_context "a test consumer" do
+RSpec.shared_context 'a test consumer' do
   let(:consumer_class) { new_consumer_class }
   let(:consumer_options) { {} }
   let(:consumer) { consumer_class.new(consumer_options) }
@@ -26,7 +26,7 @@ RSpec.shared_context "a test consumer" do
     OpenStruct.new(
       queue: "cottontail-queue-#{SecureRandom.uuid}",
       route: "cottontail-route-#{SecureRandom.uuid}",
-      payload: SecureRandom.uuid,
+      payload: SecureRandom.uuid
     )
   end
 

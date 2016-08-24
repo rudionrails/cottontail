@@ -4,7 +4,7 @@ require 'spec_helper'
 RSpec.describe 'A Cottontail::Consumer instance', :performance do
   pending 'RabbitMQ not running' unless rabbitmq_running?
 
-  include_context "a test consumer"
+  include_context 'a test consumer'
 
   let(:queue_a) { new_queue }
   let(:max_messages) { 10_000 }
